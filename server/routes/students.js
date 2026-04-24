@@ -1,13 +1,15 @@
 const express = require('express');
-const pool = require('../db');
+const { connectDb } = require('../db');
 
 const router = express.Router();
-const isValidId = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
+
+const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
 
 router.get('/', async (req, res, next) => {
   try {
-    const [rows] = await pool.query('SELECT id, name, class_name FROM students ORDER BY id DESC');
-    res.json(rows);
+    const db = await connectDb();
+    const students = await db.all('SELECT id, name, class FROM students ORDER BY id DESC');
+    res.json(students);
   } catch (error) {
     next(error);
   }
@@ -15,18 +17,19 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { name, class_name } = req.body;
+    const { name, class: className } = req.body;
 
-    if (!name?.trim() || !class_name?.trim()) {
+    if (!name?.trim() || !className?.trim()) {
       return res.status(400).json({ message: 'Name and class are required.' });
     }
 
-    const [result] = await pool.query('INSERT INTO students (name, class_name) VALUES (?, ?)', [
+    const db = await connectDb();
+    const result = await db.run('INSERT INTO students (name, class) VALUES (?, ?)', [
       name.trim(),
-      class_name.trim(),
+      className.trim(),
     ]);
 
-    res.status(201).json({ id: result.insertId, message: 'Student created successfully.' });
+    res.status(201).json({ id: result.lastID, message: 'Student added successfully.' });
   } catch (error) {
     next(error);
   }
@@ -35,23 +38,24 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, class_name } = req.body;
+    const { name, class: className } = req.body;
 
     if (!isValidId(id)) {
       return res.status(400).json({ message: 'Invalid student id.' });
     }
 
-    if (!name?.trim() || !class_name?.trim()) {
+    if (!name?.trim() || !className?.trim()) {
       return res.status(400).json({ message: 'Name and class are required.' });
     }
 
-    const [result] = await pool.query('UPDATE students SET name = ?, class_name = ? WHERE id = ?', [
+    const db = await connectDb();
+    const result = await db.run('UPDATE students SET name = ?, class = ? WHERE id = ?', [
       name.trim(),
-      class_name.trim(),
-      id,
+      className.trim(),
+      Number(id),
     ]);
 
-    if (result.affectedRows === 0) {
+    if (result.changes === 0) {
       return res.status(404).json({ message: 'Student not found.' });
     }
 
@@ -69,18 +73,24 @@ router.delete('/:id', async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid student id.' });
     }
 
-    const [activeBorrow] = await pool.query(
-      'SELECT id FROM borrowings WHERE student_id = ? AND return_date IS NULL LIMIT 1',
-      [id]
+    const db = await connectDb();
+    const activeBorrow = await db.get(
+      'SELECT id FROM borrowings WHERE student_id = ? AND return_date IS NULL',
+      [Number(id)]
     );
 
-    if (activeBorrow.length > 0) {
-      return res.status(400).json({ message: 'Cannot delete: student has active borrowings.' });
+    if (activeBorrow) {
+      return res.status(400).json({ message: 'Cannot delete student with active borrowing.' });
     }
 
-    const [result] = await pool.query('DELETE FROM students WHERE id = ?', [id]);
+    const borrowingHistory = await db.get('SELECT id FROM borrowings WHERE student_id = ?', [Number(id)]);
+    if (borrowingHistory) {
+      return res.status(400).json({ message: 'Cannot delete student with borrowing history.' });
+    }
 
-    if (result.affectedRows === 0) {
+    const result = await db.run('DELETE FROM students WHERE id = ?', [Number(id)]);
+
+    if (result.changes === 0) {
       return res.status(404).json({ message: 'Student not found.' });
     }
 
