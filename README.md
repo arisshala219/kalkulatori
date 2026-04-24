@@ -149,3 +149,4 @@ http://localhost:5000
 - This app is ready to run locally.
 - Uses async/await throughout backend logic.
 - Code is structured and commented in important areas.
+- The schema uses a generated-column unique index to enforce only one active borrowing per book (MySQL 8+ recommended).

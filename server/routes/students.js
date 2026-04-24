@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../db');
 
 const router = express.Router();
+const isValidId = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
 
 router.get('/', async (req, res, next) => {
   try {
@@ -36,6 +37,10 @@ router.put('/:id', async (req, res, next) => {
     const { id } = req.params;
     const { name, class_name } = req.body;
 
+    if (!isValidId(id)) {
+      return res.status(400).json({ message: 'Invalid student id.' });
+    }
+
     if (!name?.trim() || !class_name?.trim()) {
       return res.status(400).json({ message: 'Name and class are required.' });
     }
@@ -59,6 +64,10 @@ router.put('/:id', async (req, res, next) => {
 router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    if (!isValidId(id)) {
+      return res.status(400).json({ message: 'Invalid student id.' });
+    }
 
     const [activeBorrow] = await pool.query(
       'SELECT id FROM borrowings WHERE student_id = ? AND return_date IS NULL LIMIT 1',

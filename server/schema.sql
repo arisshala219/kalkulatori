@@ -22,9 +22,14 @@ CREATE TABLE IF NOT EXISTS borrowings (
   student_id INT NOT NULL,
   borrow_date DATE NOT NULL,
   return_date DATE NULL,
+  active_book_id INT GENERATED ALWAYS AS (
+    CASE WHEN return_date IS NULL THEN book_id ELSE NULL END
+  ) STORED,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_borrowings_book FOREIGN KEY (book_id) REFERENCES books(id)
     ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT fk_borrowings_student FOREIGN KEY (student_id) REFERENCES students(id)
     ON DELETE RESTRICT ON UPDATE CASCADE
 );
+
+CREATE UNIQUE INDEX uq_borrowings_active_book ON borrowings (active_book_id);

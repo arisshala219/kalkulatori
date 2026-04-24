@@ -2,6 +2,8 @@ const express = require('express');
 const pool = require('../db');
 
 const router = express.Router();
+const isValidId = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
+const isValidDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value);
 
 router.get('/', async (req, res, next) => {
   try {
@@ -24,8 +26,12 @@ router.post('/', async (req, res, next) => {
   try {
     const { book_id, student_id, borrow_date } = req.body;
 
-    if (!Number.isInteger(Number(book_id)) || !Number.isInteger(Number(student_id))) {
+    if (!isValidId(book_id) || !isValidId(student_id)) {
       return res.status(400).json({ message: 'Valid book and student are required.' });
+    }
+
+    if (borrow_date && !isValidDate(borrow_date)) {
+      return res.status(400).json({ message: 'Borrow date must use YYYY-MM-DD format.' });
     }
 
     const [[book]] = await pool.query('SELECT id FROM books WHERE id = ?', [Number(book_id)]);
@@ -61,6 +67,14 @@ router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const { return_date } = req.body;
+
+    if (!isValidId(id)) {
+      return res.status(400).json({ message: 'Invalid borrowing id.' });
+    }
+
+    if (return_date && !isValidDate(return_date)) {
+      return res.status(400).json({ message: 'Return date must use YYYY-MM-DD format.' });
+    }
 
     const safeReturnDate = return_date || new Date().toISOString().slice(0, 10);
 

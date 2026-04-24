@@ -32,6 +32,14 @@ const request = async (url, options = {}) => {
   return data;
 };
 
+const escapeHtml = (value) =>
+  String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
 const switchSection = () => {
   document.querySelectorAll('.nav-btn').forEach((button) => {
     button.addEventListener('click', () => {
@@ -59,13 +67,13 @@ const renderBooks = () => {
       (book) => `
       <tr>
         <td>${book.id}</td>
-        <td>${book.title}</td>
-        <td>${book.author}</td>
+        <td>${escapeHtml(book.title)}</td>
+        <td>${escapeHtml(book.author)}</td>
         <td>${book.year}</td>
         <td>${book.status}</td>
         <td>
-          <button class="action-btn edit-btn" onclick='editBook(${JSON.stringify(book)})'>Edit</button>
-          <button class="action-btn delete-btn" onclick='deleteBook(${book.id})'>Delete</button>
+          <button class="action-btn edit-btn" data-action="edit-book" data-id="${book.id}">Edit</button>
+          <button class="action-btn delete-btn" data-action="delete-book" data-id="${book.id}">Delete</button>
         </td>
       </tr>
     `
@@ -85,11 +93,11 @@ const renderStudents = () => {
       (student) => `
       <tr>
         <td>${student.id}</td>
-        <td>${student.name}</td>
-        <td>${student.class_name}</td>
+        <td>${escapeHtml(student.name)}</td>
+        <td>${escapeHtml(student.class_name)}</td>
         <td>
-          <button class="action-btn edit-btn" onclick='editStudent(${JSON.stringify(student)})'>Edit</button>
-          <button class="action-btn delete-btn" onclick='deleteStudent(${student.id})'>Delete</button>
+          <button class="action-btn edit-btn" data-action="edit-student" data-id="${student.id}">Edit</button>
+          <button class="action-btn delete-btn" data-action="delete-student" data-id="${student.id}">Delete</button>
         </td>
       </tr>
     `
@@ -108,15 +116,15 @@ const renderBorrowings = () => {
       (borrowing) => `
       <tr>
         <td>${borrowing.id}</td>
-        <td>${borrowing.book_title}</td>
-        <td>${borrowing.student_name}</td>
-        <td>${new Date(borrowing.borrow_date).toLocaleDateString()}</td>
-        <td>${borrowing.return_date ? new Date(borrowing.return_date).toLocaleDateString() : '-'}</td>
+        <td>${escapeHtml(borrowing.book_title)}</td>
+        <td>${escapeHtml(borrowing.student_name)}</td>
+        <td>${borrowing.borrow_date}</td>
+        <td>${borrowing.return_date || '-'}</td>
         <td>
           ${
             borrowing.return_date
               ? '<span>Returned</span>'
-              : `<button class="action-btn return-btn" onclick='returnBook(${borrowing.id})'>Return</button>`
+              : `<button class="action-btn return-btn" data-action="return-book" data-id="${borrowing.id}">Return</button>`
           }
         </td>
       </tr>
@@ -155,20 +163,20 @@ const resetStudentForm = () => {
   document.getElementById('student-form').reset();
 };
 
-window.editBook = (book) => {
+const editBook = (book) => {
   document.getElementById('book-id').value = book.id;
   document.getElementById('book-title').value = book.title;
   document.getElementById('book-author').value = book.author;
   document.getElementById('book-year').value = book.year;
 };
 
-window.editStudent = (student) => {
+const editStudent = (student) => {
   document.getElementById('student-id').value = student.id;
   document.getElementById('student-name').value = student.name;
   document.getElementById('student-class').value = student.class_name;
 };
 
-window.deleteBook = async (id) => {
+const deleteBook = async (id) => {
   if (!confirm('Delete this book?')) return;
   try {
     await request(`${api.books}/${id}`, { method: 'DELETE' });
@@ -179,7 +187,7 @@ window.deleteBook = async (id) => {
   }
 };
 
-window.deleteStudent = async (id) => {
+const deleteStudent = async (id) => {
   if (!confirm('Delete this student?')) return;
   try {
     await request(`${api.students}/${id}`, { method: 'DELETE' });
@@ -190,7 +198,7 @@ window.deleteStudent = async (id) => {
   }
 };
 
-window.returnBook = async (id) => {
+const returnBook = async (id) => {
   try {
     await request(`${api.borrowings}/${id}`, {
       method: 'PUT',
@@ -202,6 +210,40 @@ window.returnBook = async (id) => {
     showFeedback(error.message, true);
   }
 };
+
+document.addEventListener('click', async (event) => {
+  const actionElement = event.target.closest('[data-action]');
+  if (!actionElement) return;
+
+  const { action, id } = actionElement.dataset;
+  const numericId = Number(id);
+
+  if (action === 'edit-book') {
+    const book = state.books.find((item) => item.id === numericId);
+    if (book) editBook(book);
+    return;
+  }
+
+  if (action === 'delete-book') {
+    await deleteBook(numericId);
+    return;
+  }
+
+  if (action === 'edit-student') {
+    const student = state.students.find((item) => item.id === numericId);
+    if (student) editStudent(student);
+    return;
+  }
+
+  if (action === 'delete-student') {
+    await deleteStudent(numericId);
+    return;
+  }
+
+  if (action === 'return-book') {
+    await returnBook(numericId);
+  }
+});
 
 document.getElementById('book-form').addEventListener('submit', async (event) => {
   event.preventDefault();

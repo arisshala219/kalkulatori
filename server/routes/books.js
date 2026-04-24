@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../db');
 
 const router = express.Router();
+const isValidId = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
 
 // GET all books with live availability state.
 router.get('/', async (req, res, next) => {
@@ -49,6 +50,10 @@ router.put('/:id', async (req, res, next) => {
     const { id } = req.params;
     const { title, author, year } = req.body;
 
+    if (!isValidId(id)) {
+      return res.status(400).json({ message: 'Invalid book id.' });
+    }
+
     if (!title?.trim() || !author?.trim() || !Number.isInteger(Number(year))) {
       return res.status(400).json({ message: 'Title, author and valid year are required.' });
     }
@@ -71,6 +76,10 @@ router.put('/:id', async (req, res, next) => {
 router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    if (!isValidId(id)) {
+      return res.status(400).json({ message: 'Invalid book id.' });
+    }
 
     const [activeBorrow] = await pool.query(
       'SELECT id FROM borrowings WHERE book_id = ? AND return_date IS NULL LIMIT 1',
