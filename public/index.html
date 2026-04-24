@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Library Management Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-layout">
+      <aside class="sidebar">
+        <h1>Library</h1>
+        <nav>
+          <button class="nav-btn active" data-section="books-section">Books</button>
+          <button class="nav-btn" data-section="students-section">Students</button>
+          <button class="nav-btn" data-section="borrowings-section">Borrowings</button>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <header>
+          <h2 id="section-title">Books Management</h2>
+          <p>Modern dashboard for managing books, students and borrowings.</p>
+        </header>
+
+        <section id="books-section" class="panel active">
+          <h3>Add / Edit Book</h3>
+          <form id="book-form" class="grid-form">
+            <input type="hidden" id="book-id" />
+            <input type="text" id="book-title" placeholder="Title" required />
+            <input type="text" id="book-author" placeholder="Author" required />
+            <input type="number" id="book-year" placeholder="Year" min="1000" max="9999" required />
+            <button type="submit">Save Book</button>
+          </form>
+
+          <h3>Books Table</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Year</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="books-table"></tbody>
+          </table>
+        </section>
+
+        <section id="students-section" class="panel">
+          <h3>Add / Edit Student</h3>
+          <form id="student-form" class="grid-form">
+            <input type="hidden" id="student-id" />
+            <input type="text" id="student-name" placeholder="Student Name" required />
+            <input type="text" id="student-class" placeholder="Class" required />
+            <button type="submit">Save Student</button>
+          </form>
+
+          <h3>Students Table</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Class</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="students-table"></tbody>
+          </table>
+        </section>
+
+        <section id="borrowings-section" class="panel">
+          <h3>Borrow Book</h3>
+          <form id="borrowing-form" class="grid-form">
+            <select id="borrow-book" required></select>
+            <select id="borrow-student" required></select>
+            <input type="date" id="borrow-date" required />
+            <button type="submit">Borrow</button>
+          </form>
+
+          <h3>Borrowings Table</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Book</th>
+                <th>Student</th>
+                <th>Borrow Date</th>
+                <th>Return Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="borrowings-table"></tbody>
+          </table>
+        </section>
+
+        <p id="feedback" class="feedback"></p>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
