@@ -1,21 +1,21 @@
 {
   "name": "library-management-app",
   "version": "1.0.0",
-  "description": "Library Management Web Application with Node.js, Express, MySQL, and vanilla frontend",
-  "main": "server/index.js",
+  "description": "Library Management Web Application with Node.js, Express, SQLite, and vanilla frontend",
+  "main": "server/server.js",
   "scripts": {
-    "start": "node server/index.js",
-    "dev": "nodemon server/index.js"
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
   },
-  "keywords": ["library", "express", "mysql"],
+  "keywords": ["library", "express", "sqlite"],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "mysql2": "^3.11.3"
+    "express": "^4.21.2",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.10"
   }
 }

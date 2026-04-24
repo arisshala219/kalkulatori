@@ -1,35 +1,28 @@
-CREATE DATABASE IF NOT EXISTS library_management;
-USE library_management;
+PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS books (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
-  author VARCHAR(255) NOT NULL,
-  year INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  author TEXT NOT NULL,
+  year INTEGER NOT NULL CHECK (year >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS students (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  class_name VARCHAR(100) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  class TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS borrowings (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  book_id INT NOT NULL,
-  student_id INT NOT NULL,
-  borrow_date DATE NOT NULL,
-  return_date DATE NULL,
-  active_book_id INT GENERATED ALWAYS AS (
-    CASE WHEN return_date IS NULL THEN book_id ELSE NULL END
-  ) STORED,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_borrowings_book FOREIGN KEY (book_id) REFERENCES books(id)
-    ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT fk_borrowings_student FOREIGN KEY (student_id) REFERENCES students(id)
-    ON DELETE RESTRICT ON UPDATE CASCADE
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  book_id INTEGER NOT NULL,
+  student_id INTEGER NOT NULL,
+  borrow_date TEXT NOT NULL,
+  return_date TEXT,
+  FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE RESTRICT,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT
 );
 
-CREATE UNIQUE INDEX uq_borrowings_active_book ON borrowings (active_book_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_borrowings_active_book
+ON borrowings(book_id)
+WHERE return_date IS NULL;

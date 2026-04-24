@@ -1,26 +1,25 @@
 const express = require('express');
-const pool = require('../db');
+const { connectDb } = require('../db');
 
 const router = express.Router();
-const isValidId = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
 
-// GET all books with live availability state.
+const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
+const isValidYear = (year) => Number.isInteger(Number(year)) && Number(year) > 0;
+
 router.get('/', async (req, res, next) => {
   try {
-    const [rows] = await pool.query(
+    const db = await connectDb();
+    const books = await db.all(
       `SELECT b.id, b.title, b.author, b.year,
-              CASE
-                WHEN EXISTS (
-                  SELECT 1 FROM borrowings br
-                  WHERE br.book_id = b.id AND br.return_date IS NULL
-                ) THEN 'Borrowed'
-                ELSE 'Available'
-              END AS status
-       FROM books b
-       ORDER BY b.id DESC`
+        CASE WHEN EXISTS (
+          SELECT 1 FROM borrowings br
+          WHERE br.book_id = b.id AND br.return_date IS NULL
+        ) THEN 1 ELSE 0 END AS is_borrowed
+      FROM books b
+      ORDER BY b.id DESC`
     );
 
-    res.json(rows);
+    res.json(books);
   } catch (error) {
     next(error);
   }
@@ -30,16 +29,18 @@ router.post('/', async (req, res, next) => {
   try {
     const { title, author, year } = req.body;
 
-    if (!title?.trim() || !author?.trim() || !Number.isInteger(Number(year))) {
-      return res.status(400).json({ message: 'Title, author and valid year are required.' });
+    if (!title?.trim() || !author?.trim() || !isValidYear(year)) {
+      return res.status(400).json({ message: 'Title, author and a valid year are required.' });
     }
 
-    const [result] = await pool.query(
-      'INSERT INTO books (title, author, year) VALUES (?, ?, ?)',
-      [title.trim(), author.trim(), Number(year)]
-    );
+    const db = await connectDb();
+    const result = await db.run('INSERT INTO books (title, author, year) VALUES (?, ?, ?)', [
+      title.trim(),
+      author.trim(),
+      Number(year),
+    ]);
 
-    res.status(201).json({ id: result.insertId, message: 'Book created successfully.' });
+    res.status(201).json({ id: result.lastID, message: 'Book added successfully.' });
   } catch (error) {
     next(error);
   }
@@ -54,16 +55,19 @@ router.put('/:id', async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid book id.' });
     }
 
-    if (!title?.trim() || !author?.trim() || !Number.isInteger(Number(year))) {
-      return res.status(400).json({ message: 'Title, author and valid year are required.' });
+    if (!title?.trim() || !author?.trim() || !isValidYear(year)) {
+      return res.status(400).json({ message: 'Title, author and a valid year are required.' });
     }
 
-    const [result] = await pool.query(
-      'UPDATE books SET title = ?, author = ?, year = ? WHERE id = ?',
-      [title.trim(), author.trim(), Number(year), id]
-    );
+    const db = await connectDb();
+    const result = await db.run('UPDATE books SET title = ?, author = ?, year = ? WHERE id = ?', [
+      title.trim(),
+      author.trim(),
+      Number(year),
+      Number(id),
+    ]);
 
-    if (result.affectedRows === 0) {
+    if (result.changes === 0) {
       return res.status(404).json({ message: 'Book not found.' });
     }
 
@@ -81,18 +85,19 @@ router.delete('/:id', async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid book id.' });
     }
 
-    const [activeBorrow] = await pool.query(
-      'SELECT id FROM borrowings WHERE book_id = ? AND return_date IS NULL LIMIT 1',
-      [id]
+    const db = await connectDb();
+    const activeBorrow = await db.get(
+      'SELECT id FROM borrowings WHERE book_id = ? AND return_date IS NULL',
+      [Number(id)]
     );
 
-    if (activeBorrow.length > 0) {
-      return res.status(400).json({ message: 'Cannot delete: book is currently borrowed.' });
+    if (activeBorrow) {
+      return res.status(400).json({ message: 'Cannot delete a currently borrowed book.' });
     }
 
-    const [result] = await pool.query('DELETE FROM books WHERE id = ?', [id]);
+    const result = await db.run('DELETE FROM books WHERE id = ?', [Number(id)]);
 
-    if (result.affectedRows === 0) {
+    if (result.changes === 0) {
       return res.status(404).json({ message: 'Book not found.' });
     }
 

@@ -1,22 +1,26 @@
 const express = require('express');
-const pool = require('../db');
+const { connectDb } = require('../db');
 
 const router = express.Router();
-const isValidId = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
+
+const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
 const isValidDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value);
+const today = () => new Date().toISOString().slice(0, 10);
 
 router.get('/', async (req, res, next) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT br.id, br.book_id, b.title AS book_title, br.student_id, s.name AS student_name,
-              br.borrow_date, br.return_date
+    const db = await connectDb();
+    const borrowings = await db.all(
+      `SELECT br.id, br.book_id, br.student_id, br.borrow_date, br.return_date,
+              b.title AS book_title, b.author AS book_author,
+              s.name AS student_name, s.class AS student_class
        FROM borrowings br
        INNER JOIN books b ON b.id = br.book_id
        INNER JOIN students s ON s.id = br.student_id
        ORDER BY br.id DESC`
     );
 
-    res.json(rows);
+    res.json(borrowings);
   } catch (error) {
     next(error);
   }
@@ -31,38 +35,39 @@ router.post('/', async (req, res, next) => {
     }
 
     if (borrow_date && !isValidDate(borrow_date)) {
-      return res.status(400).json({ message: 'Borrow date must use YYYY-MM-DD format.' });
+      return res.status(400).json({ message: 'Borrow date must be in YYYY-MM-DD format.' });
     }
 
-    const [[book]] = await pool.query('SELECT id FROM books WHERE id = ?', [Number(book_id)]);
-    if (!book) return res.status(404).json({ message: 'Book not found.' });
+    const db = await connectDb();
+    const book = await db.get('SELECT id FROM books WHERE id = ?', [Number(book_id)]);
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found.' });
+    }
 
-    const [[student]] = await pool.query('SELECT id FROM students WHERE id = ?', [Number(student_id)]);
-    if (!student) return res.status(404).json({ message: 'Student not found.' });
+    const student = await db.get('SELECT id FROM students WHERE id = ?', [Number(student_id)]);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
+    }
 
-    const [activeBorrow] = await pool.query(
-      'SELECT id FROM borrowings WHERE book_id = ? AND return_date IS NULL LIMIT 1',
+    const activeBorrow = await db.get(
+      'SELECT id FROM borrowings WHERE book_id = ? AND return_date IS NULL',
       [Number(book_id)]
     );
-
-    if (activeBorrow.length > 0) {
-      return res.status(400).json({ message: 'Book is already borrowed.' });
+    if (activeBorrow) {
+      return res.status(400).json({ message: 'This book is already borrowed.' });
     }
 
-    const safeBorrowDate = borrow_date || new Date().toISOString().slice(0, 10);
-
-    const [result] = await pool.query(
-      'INSERT INTO borrowings (book_id, student_id, borrow_date) VALUES (?, ?, ?)',
-      [Number(book_id), Number(student_id), safeBorrowDate]
+    const result = await db.run(
+      'INSERT INTO borrowings (book_id, student_id, borrow_date, return_date) VALUES (?, ?, ?, NULL)',
+      [Number(book_id), Number(student_id), borrow_date || today()]
     );
 
-    res.status(201).json({ id: result.insertId, message: 'Borrowing registered successfully.' });
+    res.status(201).json({ id: result.lastID, message: 'Book borrowed successfully.' });
   } catch (error) {
     next(error);
   }
 });
 
-// Return a book by setting the return date.
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -73,19 +78,21 @@ router.put('/:id', async (req, res, next) => {
     }
 
     if (return_date && !isValidDate(return_date)) {
-      return res.status(400).json({ message: 'Return date must use YYYY-MM-DD format.' });
+      return res.status(400).json({ message: 'Return date must be in YYYY-MM-DD format.' });
     }
 
-    const safeReturnDate = return_date || new Date().toISOString().slice(0, 10);
+    const db = await connectDb();
+    const existing = await db.get('SELECT id, return_date FROM borrowings WHERE id = ?', [Number(id)]);
 
-    const [[borrowing]] = await pool.query('SELECT id, return_date FROM borrowings WHERE id = ?', [id]);
-    if (!borrowing) return res.status(404).json({ message: 'Borrowing record not found.' });
-
-    if (borrowing.return_date) {
-      return res.status(400).json({ message: 'Book has already been returned.' });
+    if (!existing) {
+      return res.status(404).json({ message: 'Borrowing not found.' });
     }
 
-    await pool.query('UPDATE borrowings SET return_date = ? WHERE id = ?', [safeReturnDate, id]);
+    if (existing.return_date) {
+      return res.status(400).json({ message: 'This borrowing has already been returned.' });
+    }
+
+    await db.run('UPDATE borrowings SET return_date = ? WHERE id = ?', [return_date || today(), Number(id)]);
 
     res.json({ message: 'Book returned successfully.' });
   } catch (error) {
