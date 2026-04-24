@@ -1,152 +1,133 @@
 # Library Management Web Application
 
-A complete full-stack Library Management app built with:
+A full-stack Library Management app built using:
 - **Frontend:** HTML, CSS, JavaScript
 - **Backend:** Node.js + Express
-- **Database:** MySQL
+- **Database:** SQLite (`library.db`)
 
 ## Features
 
-### 1) Books (Libra)
-- Add books (title, author, year)
-- View all books
-- Edit books
-- Delete books
+### 1) Book Management (Libra)
+- Add books (`title`, `author`, `year`)
+- View books in a table
+- Edit and delete books
+- Search books by title or author
+- Borrow button disabled automatically if book is already borrowed
 
-### 2) Students (Nxënësit)
-- Add students (name, class)
-- View all students
-- Edit students
-- Delete students
+### 2) Student Management (Nxënësit)
+- Add students (`name`, `class`)
+- View, edit, and delete students
 
-### 3) Borrowings (Huazime)
-- Borrow a book by linking student + book
-- Return a book by updating `return_date`
+### 3) Borrowing System (Huazime)
+- Borrow a book by connecting a student and a book
+- Return a book
 - Stores `borrow_date` and `return_date`
-- Prevents borrowing when a book is already borrowed
+- Prevents active duplicate borrowing of the same book
+- Highlights active borrowings in the table
 
-### 4) Modern UI
-- Responsive dashboard layout
-- Sidebar navigation (Books, Students, Borrowings)
-- Forms + data tables
-- Clean modern styling
+### 4) Modern Responsive UI
+- Dashboard layout
+- Sidebar navigation: Books, Students, Borrowings
+- Mobile-friendly design
+- Dynamic updates with Fetch API (no full page reload)
+- Success/error feedback messages
 
 ---
 
 ## Project Structure
 
 ```bash
-library-management-app/
-├── public/
-│   ├── index.html
-│   ├── styles.css
-│   └── app.js
-├── server/
-│   ├── db.js
-│   ├── index.js
-│   ├── schema.sql
-│   └── routes/
-│       ├── books.js
-│       ├── students.js
-│       └── borrowings.js
-├── .env.example
-├── package.json
-└── README.md
+project-root/
+  server/
+    db.js
+    server.js
+    schema.sql
+    library.db     # auto-created at runtime
+    routes/
+      books.js
+      students.js
+      borrowings.js
+  public/
+    index.html
+    style.css
+    app.js
+  package.json
+  .env.example
+  README.md
 ```
 
 ---
 
-## Database Script (MySQL)
+## SQLite Schema
 
-Run the SQL file:
+SQLite setup is handled automatically in `server/db.js` when the server starts.
 
-```sql
-SOURCE server/schema.sql;
-```
+You can also inspect the SQL in:
+- `server/schema.sql`
 
-Or copy and execute the script manually from `server/schema.sql`.
+Tables:
+- `books(id, title, author, year)`
+- `students(id, name, class)`
+- `borrowings(id, book_id, student_id, borrow_date, return_date)`
 
 ---
 
-## Setup Instructions (Step by Step)
+## Step-by-Step Run Instructions (Visual Studio Code)
 
-### 1. Clone/Open in VS Code
-1. Open VS Code.
-2. Open the project folder.
-3. Open integrated terminal: **Terminal → New Terminal**.
+1. **Open project in Visual Studio Code**
+   - `File` → `Open Folder...` → select this project.
 
-### 2. Install dependencies
-```bash
-npm install
-```
+2. **Open terminal in VS Code**
+   - `Terminal` → `New Terminal`.
 
-### 3. Configure environment variables
-1. Copy `.env.example` to `.env`:
+3. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+4. **(Optional) Create environment file**
    ```bash
    cp .env.example .env
    ```
-2. Edit `.env` and set your MySQL credentials:
-   - `DB_HOST`
-   - `DB_PORT`
-   - `DB_USER`
-   - `DB_PASSWORD`
-   - `DB_NAME`
+   Default port is `5000`.
 
-### 4. Create database tables
-Run MySQL and execute:
-```bash
-mysql -u root -p < server/schema.sql
-```
-(Replace `root` with your MySQL username.)
+5. **Start the app**
+   ```bash
+   npm run dev
+   ```
+   or
+   ```bash
+   npm start
+   ```
 
-### 5. Start the app
-```bash
-npm run dev
-```
-or
-```bash
-npm start
-```
-
-### 6. Open in browser
-Go to:
-```text
-http://localhost:5000
-```
+6. **Open in browser**
+   - Visit: `http://localhost:5000`
 
 ---
 
 ## API Endpoints
 
-### Books
-- `GET /books`
-- `POST /books`
-- `PUT /books/:id`
-- `DELETE /books/:id`
+### `/books`
+- `GET /books` – get all books (with borrowing status)
+- `POST /books` – add book
+- `PUT /books/:id` – update book
+- `DELETE /books/:id` – delete book
 
-### Students
+### `/students`
 - `GET /students`
 - `POST /students`
 - `PUT /students/:id`
 - `DELETE /students/:id`
 
-### Borrowings
-- `GET /borrowings`
-- `POST /borrowings`
-- `PUT /borrowings/:id` (return book)
-
----
-
-## Validation & Error Handling
-- Input validation on all create/update routes
-- Borrowing validation prevents double-borrowing the same book
-- Guard checks for missing resources (404)
-- Centralized error middleware for 500 errors
+### `/borrowings`
+- `GET /borrowings` – all borrowings with JOIN data
+- `POST /borrowings` – borrow book
+- `PUT /borrowings/:id` – return book
 
 ---
 
 ## Notes
-- This app is ready to run locally.
-- Uses async/await throughout backend logic.
-- Code is structured and commented in important areas.
-- The schema uses a generated-column unique index to enforce only one active borrowing per book (MySQL 8+ recommended).
+- The app uses `async/await` in all backend routes.
+- Input validation and error handling are included.
+- `library.db` is created automatically inside `/server`.
+- The app is beginner-friendly and ready to run locally.
