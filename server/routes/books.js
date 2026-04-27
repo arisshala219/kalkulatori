@@ -4,7 +4,7 @@ const { connectDb } = require('../db');
 const router = express.Router();
 
 const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
-const isValidYear = (year) => Number.isInteger(Number(year)) && Number(year) > 0;
+const isValidYear = (year) => Number.isInteger(Number(year)) && Number(year) >= 0;
 
 router.get('/', async (req, res, next) => {
   try {
@@ -30,7 +30,7 @@ router.post('/', async (req, res, next) => {
     const { title, author, year } = req.body;
 
     if (!title?.trim() || !author?.trim() || !isValidYear(year)) {
-      return res.status(400).json({ message: 'Title, author and a valid year are required.' });
+      return res.status(400).json({ message: 'Title, author and a valid year (0 or greater) are required.' });
     }
 
     const db = await connectDb();
@@ -56,7 +56,7 @@ router.put('/:id', async (req, res, next) => {
     }
 
     if (!title?.trim() || !author?.trim() || !isValidYear(year)) {
-      return res.status(400).json({ message: 'Title, author and a valid year are required.' });
+      return res.status(400).json({ message: 'Title, author and a valid year (0 or greater) are required.' });
     }
 
     const db = await connectDb();
