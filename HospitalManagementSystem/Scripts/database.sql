@@ -1,0 +1,43 @@
+-- Hospital Management System SQLite schema
+CREATE TABLE IF NOT EXISTS Patients (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    FullName TEXT NOT NULL,
+    DateOfBirth TEXT NOT NULL,
+    Phone TEXT,
+    Address TEXT
+);
+
+CREATE TABLE IF NOT EXISTS Doctors (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    FullName TEXT NOT NULL,
+    Specialization TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS Appointments (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    PatientId INTEGER NOT NULL,
+    DoctorId INTEGER NOT NULL,
+    Date TEXT NOT NULL,
+    Time TEXT NOT NULL,
+    FOREIGN KEY (PatientId) REFERENCES Patients(Id),
+    FOREIGN KEY (DoctorId) REFERENCES Doctors(Id)
+);
+
+CREATE TABLE IF NOT EXISTS Prescriptions (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    PatientId INTEGER NOT NULL,
+    DoctorId INTEGER NOT NULL,
+    Medication TEXT NOT NULL,
+    Dosage TEXT NOT NULL,
+    Notes TEXT,
+    FOREIGN KEY (PatientId) REFERENCES Patients(Id),
+    FOREIGN KEY (DoctorId) REFERENCES Doctors(Id)
+);
+
+CREATE TABLE IF NOT EXISTS Reception (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    PatientId INTEGER NOT NULL,
+    VisitDate TEXT NOT NULL,
+    Reason TEXT NOT NULL,
+    FOREIGN KEY (PatientId) REFERENCES Patients(Id)
+);
